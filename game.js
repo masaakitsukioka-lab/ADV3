@@ -300,8 +300,35 @@ function typeText(text, callback, onComplete) {
 }
 
 function showText(text, callback, onComplete) {
+  hideItemOverlay();
   renderCommandList();
   typeText(text, callback, onComplete);
+}
+
+function hideItemOverlay() {
+  const overlay = document.getElementById("itemOverlay");
+  if (overlay) {
+    overlay.hidden = true;
+    overlay.removeAttribute("src");
+    overlay.alt = "";
+  }
+}
+
+function showItemMessage(item, text, callback, onComplete) {
+  showText(text, callback, () => {
+    hideItemOverlay();
+    if (onComplete) onComplete();
+  });
+  const source = {
+    "血の付いたカッター": "images/cut.png",
+    "赤いUSBメモリ": "images/usb.png"
+  }[item];
+  const overlay = document.getElementById("itemOverlay");
+  if (source && overlay) {
+    overlay.src = source;
+    overlay.alt = item;
+    overlay.hidden = false;
+  }
 }
 
 function updatePlace() {
@@ -369,6 +396,7 @@ function commands() {
 
 function runCommand(action) {
   if (!Game.started) return;
+  hideItemOverlay();
   // A new command interrupts the current dialogue and its mouth animation.
   stopCharacterTalking();
   if (!Game.flags.bodyFound && action !== moveMenu && action !== inventoryMenu) {
@@ -394,7 +422,6 @@ function renderCommandList() {
     ["もちもの", inventoryMenu]
   ];
   if (Game.flags.kimuraTestimony && Game.place === "801教室") commandList.push(["こくはつする", accuse]);
-  box.classList.toggle("compactCommands", commandList.length > 7);
   commandList.forEach(([label, action]) => {
     const button = document.createElement("button");
     button.className = "command";
@@ -410,11 +437,11 @@ function inventoryMenu() {
 }
 
 function showChoices(title, choices) {
+  hideItemOverlay();
   clearTyping();
   next = null;
   commandMenuOpen = true;
   const box = commands();
-  box.classList.remove("compactCommands");
   box.replaceChildren();
   box.scrollTop = 0;
   const heading = document.createElement("div");
@@ -600,13 +627,13 @@ function takeMenu() {
     Game.flags.locationsUnlocked = true;
     Game.inventory.push("血の付いたカッター");
     updateAccuseCommand();
-    return showText("血の付いたカッターを、凶器として確保した。");
+    return showItemMessage("血の付いたカッター", "血の付いたカッターを、凶器として確保した。");
   }
   if (Game.place === "801教室" && Game.flags.tanakaBookshelfChecked && !Game.flags.usbFound) {
     Game.flags.usbFound = true;
     Game.inventory.push("赤いUSBメモリ");
     checkKimura();
-    return showText("本棚のマンガをどけると、奥から赤いUSBメモリが出てきた。\n赤いUSBメモリをとった。");
+    return showItemMessage("赤いUSBメモリ", "本棚のマンガをどけると、奥から赤いUSBメモリが出てきた。\n赤いUSBメモリをとった。");
   }
   showText(Game.place === "学生ホール" ? "ここにはとるものはない……" : Game.place === "西神田校舎正門" ? "ここにはとるものがない" : Game.place === "901シルク室" ? "ここにとれそうなものはない" : "ここにとるものはない");
 }
@@ -626,33 +653,33 @@ function showItem(person, item) {
     Game.flags.houShown = true;
     checkKimura();
     startCharacterTalking(person);
-    return showText("侯くん「血がついてる！……そのカッター801で使ってるやつだよね」", null, stopCharacterTalking);
+    return showItemMessage(item, "侯くん「血がついてる！……そのカッター801で使ってるやつだよね」", null, stopCharacterTalking);
   }
   if (person === "侯宇帆" && item === "赤いUSBメモリ") {
     startCharacterTalking(person);
-    return showText("侯くん「見覚えないなあ」", null, stopCharacterTalking);
+    return showItemMessage(item, "侯くん「見覚えないなあ」", null, stopCharacterTalking);
   }
   if (person === "関澤遼") {
     Game.flags.sekizawaShown = true;
     checkKimura();
     startCharacterTalking(person);
     if (Game.flags.kimuraTestimony) {
-      return showText("関澤「僕は何も知りません」", null, stopCharacterTalking);
+      return showItemMessage(item, "関澤「僕は何も知りません」", null, stopCharacterTalking);
     }
     if (item === "赤いUSBメモリ") {
       const line = Game.flags.sekizawaUsbShown ? "関澤「……………………………」" : "関澤「！！それ……なんですかね、僕は知りません…」";
       Game.flags.sekizawaUsbShown = true;
-      return showText(line, null, stopCharacterTalking);
+      return showItemMessage(item, line, null, stopCharacterTalking);
     }
     const line = Game.flags.sekizawaCutterShown ? "すみません、みたくないです。血が苦手なので……" : "関澤「それって……凶器ですか……？」";
     Game.flags.sekizawaCutterShown = true;
-    return showText(line, null, stopCharacterTalking);
+    return showItemMessage(item, line, null, stopCharacterTalking);
   }
   if (person === "木村友紀子") {
     startCharacterTalking(person);
-    return showText(item === "赤いUSBメモリ" ? "木村「それ、智恵先生のUSBです」" : "木村「！！！それは……」", null, stopCharacterTalking);
+    return showItemMessage(item, item === "赤いUSBメモリ" ? "木村「それ、智恵先生のUSBです」" : "木村「！！！それは……」", null, stopCharacterTalking);
   }
-  showText("通行人「ん？なんですか？それ？」");
+  showItemMessage(item, "通行人「ん？なんですか？それ？」");
 }
 
 function hasItem(name) {
@@ -710,6 +737,8 @@ function updateAccuseCommand() {
 function accuse() {
   if (Game.place !== "801教室") return showText("関澤をこくはつしよう");
   if (!Game.flags.usbRead) return showText("こくはつするにはまだ証拠がない。職員室で証拠を調べよう");
+  CharacterSprites["関澤遼"].idle = "images/sekizawa_03.png";
+  CharacterSprites["関澤遼"].talking = "images/sekizawa_04.png";
   startCharacterTalking("関澤遼");
   showText("月岡「お前が智恵蔵を殺したんだなっ」\n月岡「証拠は見つけた。この横領の裏帳簿、これが動機だあっ」\n関澤「……」\n関澤は諦めた様子で語り出した。\n関澤「……801教室でハレパネを切る作業をしていた時に智恵先生に呼び出されました」\n関澤「その時カッターを持ったまま904教室に行ったんです」\n関澤「殺すつもりはなかったんです……」\n関澤「……智恵先生に裏帳簿のことがバレて」\n関澤「もう訳がわからなくて、気がついたら……」\n関澤「智恵先生が目の前で倒れていました……」\n月岡「お前、その後801にいたのはこれを探していたからだな？」\n赤いUSBを関澤に突きつけた\n月岡「智恵蔵を殺したあげくに横領の証拠を隠滅しようとしていたんだっ」\n月岡「お前は救いのないことをした……この馬鹿野郎がっ！」\n関澤はもうしゃべることなくただうなだれてれていた。\n遠くからパトカーのサイレンが聞こえる。\nこうして、一夜の事件は関澤の逮捕によって幕を閉じた", showCredits, stopCharacterTalking);
 }
@@ -759,8 +788,8 @@ function showCredits() {
     <p class="creditsEnd">THE END</p>
     <p class="creditsLabel">出演</p>
     <p class="creditsCast">月岡正明<br>田中智恵　侯宇帆<br>関澤遼　木村友紀子</p>
-    <p>ディレクター・シナリオ<br>月岡正明</p>
-    <p>プログラム<br>Chat GPT</p>
+    <p class="creditsRole">ディレクター・シナリオ<br>月岡正明</p>
+    <p class="creditsRole">プログラム<br>Chat GPT</p>
   </div>`;
   playEndingSiren();
 }
