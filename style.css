@@ -1,0 +1,74 @@
+* { box-sizing: border-box; }
+:root { color-scheme: dark; font-family: "Courier New", monospace; color: #fff; background: #000; }
+body {
+  margin: 0;
+  height: 100vh;
+  height: 100dvh;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+button { font: inherit; color: inherit; touch-action: manipulation; cursor: pointer; }
+#game { width: 100%; height: 100%; background: #211e1e; overflow: hidden; }
+#screen {
+  display: none;
+  width: 100%; height: 100%;
+  /* 852 × 393 is a reference; available space determines every track. */
+  padding: clamp(4px, 5.1vh, 20px) clamp(6px, 2.35vw, 32px);
+  padding-block: clamp(4px, calc((100dvh - 320px) / 3.65), 20px);
+  grid-template-columns: clamp(150px, 20vw, 220px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1.81fr) minmax(96px, 1fr);
+  column-gap: clamp(10px, 4.46vw, 38px);
+  row-gap: clamp(8px, 5.1dvh, 20px);
+}
+.commands {
+  grid-column: 1; grid-row: 1 / 3;
+  min-height: 0; min-width: 0;
+  border: 3px solid white;
+  padding: 4px 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.command, .choice {
+  display: block; width: 100%; min-height: 44px;
+  margin: 0; padding: 9px 0;
+  border: 0; background: transparent;
+  font-size: 16px; line-height: 1.5; text-align: left;
+  overflow-wrap: anywhere;
+}
+.commandMenuTitle { padding: 4px 0 8px; font-size: 16px; line-height: 1.5; color: #ffff00; }
+.commandBack { color: #bbb; }
+button:focus-visible, .message:focus-visible { outline: 2px solid #ffff00; outline-offset: -2px; }
+button:active { color: #ffff00; background: #393326; }
+@media (hover: hover) { button:hover { color: #ffff00; } }
+button:disabled { opacity: .45; cursor: default; }
+.scene { grid-column: 2; grid-row: 1; min-height: 0; min-width: 0; }
+.imageArea { height: 100%; width: 100%; border: 3px solid white; background: #000; position: relative; overflow: hidden; }
+#sceneImage { display: block; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.characterSprite { display: none; position: absolute; right: 4%; bottom: 0; height: 96%; max-width: 44%; object-fit: contain; object-position: center bottom; image-rendering: pixelated; pointer-events: none; }
+.characterSprite[data-character="hou"] { height: 86%; }
+#image { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; white-space: pre-line; line-height: 1.7; color: #aaa; pointer-events: none; }
+.message { grid-column: 2; grid-row: 2; min-width: 0; min-height: 0; border: 3px solid white; padding: 8px 12px; font-size: 16px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; overflow-y: auto; overscroll-behavior: contain; touch-action: manipulation; cursor: pointer; }
+.cursor { color: #ffff00; animation: blink 1s infinite; }
+#title { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(8px, 3dvh, 24px); padding: 12px; text-align: center; overflow-y: auto; background: #000; }
+.logo { display: block; max-width: 90%; width: auto; height: auto; max-height: 60%; object-fit: contain; image-rendering: pixelated; min-height: 0; }
+.start { flex-shrink: 0; min-height: 44px; padding: 6px 24px; border: 0; background: transparent; font-size: clamp(20px, 3vw, 32px); animation: blink 1s infinite; }
+.copy { font-size: 12px; }
+.orientationHint { display: none; margin: 0; font-size: 14px; color: #ccc; }
+.credits { grid-column: 1 / -1; grid-row: 1 / -1; overflow-y: auto; text-align: center; font-size: 16px; line-height: 1.4; animation: creditsFade 2s ease-in; }
+.credits p { margin: 8px 0; }
+.credits p:nth-child(2), .credits p:last-child { color: #ffff00; }
+.credits p:last-child { font-size: 32px; }
+@media (orientation: portrait) {
+  .orientationHint { display: block; }
+  #screen { grid-template-columns: 150px minmax(0, 1fr); column-gap: 8px; padding-inline: 4px; grid-template-rows: minmax(0, 1fr) minmax(160px, 1fr); }
+  .message { padding: 8px; }
+}
+@keyframes blink { 50% { opacity: .35; } }
+@keyframes creditsFade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
+
+@media (max-height: 340px) and (orientation: landscape) {
+  #screen { padding-block: 2px; }
+  .commands { padding-block: 0; }
+}
