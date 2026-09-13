@@ -299,6 +299,8 @@ function commands() {
 
 function runCommand(action) {
   if (!Game.started) return;
+  // A new command interrupts the current dialogue and its mouth animation.
+  stopCharacterTalking();
   if (!Game.flags.bodyFound && action !== moveMenu && action !== inventoryMenu) {
     showText("今は904教室へ向かわなくては。\n\n「ばしょいどう」を選ぼう。");
     return;
@@ -611,7 +613,7 @@ function readUsb() {
 }
 
 function requestUsbPassword() {
-  const password = window.prompt("パスワード4桁の入力画面が出現。");
+  const password = window.prompt("パスワード4文字の入力画面が出現。");
   if (password === null) return;
   if (password !== "カメムシ") {
     showText("エラー", requestUsbPassword);
