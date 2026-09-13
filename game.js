@@ -300,7 +300,6 @@ function typeText(text, callback, onComplete) {
 }
 
 function showText(text, callback, onComplete) {
-  hideItemOverlay();
   renderCommandList();
   typeText(text, callback, onComplete);
 }
@@ -315,10 +314,7 @@ function hideItemOverlay() {
 }
 
 function showItemMessage(item, text, callback, onComplete) {
-  showText(text, callback, () => {
-    hideItemOverlay();
-    if (onComplete) onComplete();
-  });
+  showText(text, callback, onComplete);
   const source = {
     "血の付いたカッター": "images/cut.png",
     "赤いUSBメモリ": "images/usb.png"
@@ -584,24 +580,33 @@ function searchMenu() {
   const items = [...Places[Game.place].items].filter((item) => item !== "智恵蔵のPC" || hasItem("赤いUSBメモリ"));
   if (Game.place === "904教室" && Game.flags.cutterSeen) items.push("血染めのカッター");
   if (Game.place === "801教室" && Game.flags.bookshelfChecked) items.push("智恵蔵の本棚");
+  for (const item of Game.inventory) {
+    if (!items.includes(item) && !(item === "血の付いたカッター" && items.includes("血染めのカッター"))) items.push(item);
+  }
   showChoices("何を調べますか？", items.map((item) => ({ label: item, action: () => searchItem(item) })));
 }
 
 function searchItem(item) {
+  if (item === "血の付いたカッター" && hasItem(item)) {
+    return showItemMessage(item, "凶器として確保した、血の付いたカッターだ。801教室で使われているものと同じ型だ。");
+  }
+  if (item === "赤いUSBメモリ" && hasItem(item)) {
+    return showItemMessage(item, "智恵蔵の本棚から見つけた赤いUSBメモリだ。中身は職員室のPCで確認できそうだ。");
+  }
   const key = `${Game.place}:${item}`;
   if (key === "904教室:智恵蔵") return showText("明らかに殺害されている。鋭い刃物による深い傷が見える。これは事故ではない。\n犯人は智恵蔵と向き合い、言い争いの末に刺したのだろう。");
   if (key === "904教室:ゆか") {
     Game.flags.cutterSeen = true;
-    return showText("床には血に染まったカッターが落ちている。\n月岡「おそらくこれが凶器だろう」");
+    return showItemMessage("血の付いたカッター", "床には血に染まったカッターが落ちている。\n月岡「おそらくこれが凶器だろう」");
   }
-  if (key === "904教室:血染めのカッター") return showText("血の付いたカッターが落ちている。犯人は智恵蔵と向き合っていた。\nどうやら突然の襲撃ではなさそうだ。\nカッターは801教室で使われているものと同じ型だ。\n「とる」で凶器を確保しよう。");
+  if (key === "904教室:血染めのカッター") return showItemMessage("血の付いたカッター", "血の付いたカッターが落ちている。犯人は智恵蔵と向き合っていた。\nどうやら突然の襲撃ではなさそうだ。\nカッターは801教室で使われているものと同じ型だ。\n「とる」で凶器を確保しよう。");
   if (key === "801教室:本棚") {
     Game.flags.bookshelfChecked = true;
     return showText("801教室には図書室も兼ねてたくさんのデザイン系書籍がある。\n一部、職員の本も置かれている。");
   }
   if (key === "801教室:智恵蔵の本棚") {
     Game.flags.tanakaBookshelfChecked = true;
-    return showText("智恵蔵の私物の本だ。たくさんのマンガが並んでいる。\n？？？奥に、何か赤いものが押し込められている。\n「とる」で何か確認しよう。");
+    return showItemMessage("赤いUSBメモリ", "智恵蔵の私物の本だ。たくさんのマンガが並んでいる。\n？？？奥に、何か赤いものが押し込められている。\n「とる」で何か確認しよう。");
   }
   if (key === "801教室:ゴミ箱") return showText("ん？ゴミ箱に小さく破れた伝票の切れ端がある。\n関澤に聞いても知らないという。");
   if (key === "職員室:智恵蔵の机") return showText("特に気になるものはないが……");
@@ -708,7 +713,7 @@ function findTarget(target) {
 }
 
 function readUsb() {
-  showText("智恵蔵のPCに赤いUSBを接続した", requestUsbPassword);
+  showItemMessage("赤いUSBメモリ", "智恵蔵のPCに赤いUSBを接続した", requestUsbPassword);
 }
 
 function requestUsbPassword() {
