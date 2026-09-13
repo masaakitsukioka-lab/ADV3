@@ -311,7 +311,11 @@ function updatePlace() {
   img.alt = `${Game.place}の背景`;
   img.src = place.image;
   img.onerror = () => { img.style.display = "none"; };
-  img.onload = () => { img.style.display = "block"; visual().textContent = ""; };
+  img.onload = () => {
+    img.style.display = "block";
+    const placeholder = visual();
+    if (placeholder) placeholder.textContent = "";
+  };
   updateCharacterSprite();
 }
 
@@ -390,6 +394,7 @@ function renderCommandList() {
     ["もちもの", inventoryMenu]
   ];
   if (Game.flags.kimuraTestimony && Game.place === "801教室") commandList.push(["こくはつする", accuse]);
+  box.classList.toggle("compactCommands", commandList.length > 7);
   commandList.forEach(([label, action]) => {
     const button = document.createElement("button");
     button.className = "command";
@@ -409,6 +414,7 @@ function showChoices(title, choices) {
   next = null;
   commandMenuOpen = true;
   const box = commands();
+  box.classList.remove("compactCommands");
   box.replaceChildren();
   box.scrollTop = 0;
   const heading = document.createElement("div");
@@ -708,9 +714,55 @@ function accuse() {
   showText("月岡「お前が智恵蔵を殺したんだなっ」\n月岡「証拠は見つけた。この横領の裏帳簿、これが動機だあっ」\n関澤「……」\n関澤は諦めた様子で語り出した。\n関澤「……801教室でハレパネを切る作業をしていた時に智恵先生に呼び出されました」\n関澤「その時カッターを持ったまま904教室に行ったんです」\n関澤「殺すつもりはなかったんです……」\n関澤「……智恵先生に裏帳簿のことがバレて」\n関澤「もう訳がわからなくて、気がついたら……」\n関澤「智恵先生が目の前で倒れていました……」\n月岡「お前、その後801にいたのはこれを探していたからだな？」\n赤いUSBを関澤に突きつけた\n月岡「智恵蔵を殺したあげくに横領の証拠を隠滅しようとしていたんだっ」\n月岡「お前は救いのないことをした……この馬鹿野郎がっ！」\n関澤はもうしゃべることなくただうなだれてれていた。\n遠くからパトカーのサイレンが聞こえる。\nこうして、一夜の事件は関澤の逮捕によって幕を閉じた", showCredits, stopCharacterTalking);
 }
 
+// One call is a complete rising/falling siren cycle (1.2 seconds).
+async function playEndingSiren() {
+  try {
+    await enableAudio();
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const start = audioContext.currentTime;
+    const callDuration = 1.2;
+    oscillator.type = "triangle";
+    oscillator.frequency.setValueAtTime(580, start);
+    for (let call = 0; call < 10; call += 1) {
+      const when = start + call * callDuration;
+      oscillator.frequency.linearRampToValueAtTime(1000, when + callDuration / 2);
+      oscillator.frequency.linearRampToValueAtTime(580, when + callDuration);
+    }
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.12, start + 0.03);
+    gain.gain.setValueAtTime(0.12, start + 9 * callDuration);
+    gain.gain.linearRampToValueAtTime(0, start + 10 * callDuration);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.addEventListener("ended", () => {
+      oscillator.disconnect();
+      gain.disconnect();
+    }, { once: true });
+    oscillator.start(start);
+    oscillator.stop(start + 10 * callDuration);
+  } catch (_) {
+    // Credits remain available even without audio support.
+  }
+}
+
 function showCredits() {
+  if (document.querySelector(".credits")) return;
+  clearTyping();
+  next = null;
+  typingComplete = null;
+  stopCharacterTalking();
   stopBgm();
-  document.getElementById("screen").innerHTML = `<div class="credits"><p>東京デザイナー・アカデミー殺人事件</p><p>出演</p><p>月岡正明<br>田中智恵<br>侯宇帆<br>関澤遼<br>木村友紀子</p><p>ディレクター<br>月岡正明</p><p>シナリオ<br>月岡正明</p><p>プログラム<br>Chat GPT</p><p>THE END</p></div>`;
+  stopTitleBgm();
+  document.getElementById("screen").innerHTML = `<div class="credits">
+    <p class="creditsTitle">東京デザイナー・アカデミー殺人事件</p>
+    <p class="creditsEnd">THE END</p>
+    <p class="creditsLabel">出演</p>
+    <p class="creditsCast">月岡正明<br>田中智恵　侯宇帆<br>関澤遼　木村友紀子</p>
+    <p>ディレクター・シナリオ<br>月岡正明</p>
+    <p>プログラム<br>Chat GPT</p>
+  </div>`;
+  playEndingSiren();
 }
 
 function startGame() {

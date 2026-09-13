@@ -64,9 +64,9 @@ button:disabled { opacity: .45; cursor: default; }
 .copy { font-size: 12px; }
 .orientationHint { display: none; margin: 0; font-size: 14px; color: #ccc; }
 .credits { grid-column: 1 / -1; grid-row: 1 / -1; overflow-y: auto; text-align: center; font-size: 16px; line-height: 1.4; animation: creditsFade 2s ease-in; }
-.credits p { margin: 8px 0; }
-.credits p:nth-child(2), .credits p:last-child { color: #ffff00; }
-.credits p:last-child { font-size: 32px; }
+.credits p { margin: 6px 0; }
+.credits .creditsLabel, .credits .creditsEnd { color: #ffff00; }
+.credits .creditsEnd { font-size: 40px; line-height: 1.1; margin: 8px 0; }
 @media (orientation: portrait) {
   .orientationHint { display: block; }
   #screen { grid-template-columns: minmax(0, 1fr) 150px; padding-inline: 4px; grid-template-rows: minmax(0, 1fr) minmax(160px, 1fr); }
@@ -79,4 +79,17 @@ button:disabled { opacity: .45; cursor: default; }
 @media (max-height: 340px) and (orientation: landscape) {
   #screen { padding-block: 2px; }
   .commands { padding-block: 0; }
+}
+
+/* Fit the late-game eighth command within the available panel height. */
+.commands.compactCommands {
+  display: grid;
+  grid-template-rows: repeat(8, minmax(32px, 1fr));
+  row-gap: 0;
+  padding-block: 2px;
+}
+.compactCommands > .command {
+  min-height: 32px;
+  padding-block: 4px;
+  line-height: 1.5;
 }
