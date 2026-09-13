@@ -63,6 +63,9 @@ let commandMenuOpen = false;
 
 // 人物追加時も、この間隔で開口・閉口画像を切り替える。
 const MOUTH_FLAP_INTERVAL_MS = 500;
+const TEXT_CHARACTER_INTERVAL_MS = 30;
+const TEXT_BEEP_INTERVAL_SECONDS = 0.09;
+let lastTextBeepTime = -Infinity;
 
 
 // 音声ファイルなしで鳴らす、矩形波のチップチューンBGM。
@@ -98,6 +101,66 @@ function enableAudio() {
     audioContext = new AudioContextClass();
   }
   return audioContext.resume();
+}
+
+// Three short retro phone rings, scheduled on the audio clock.
+// Separate nodes keep BGM changes from cutting the ringtone short.
+async function playPhoneRingtone() {
+  try {
+    await enableAudio();
+    const start = audioContext.currentTime + 0.02;
+    for (let call = 0; call < 3; call += 1) {
+      const when = start + call * 1.5;
+      const duration = 0.9;
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = "square";
+      for (let pulse = 0; pulse < 9; pulse += 1) {
+        oscillator.frequency.setValueAtTime(pulse % 2 ? 880 : 660, when + pulse * 0.1);
+      }
+      gain.gain.setValueAtTime(0, when);
+      gain.gain.linearRampToValueAtTime(0.045, when + 0.015);
+      gain.gain.setValueAtTime(0.045, when + duration - 0.03);
+      gain.gain.linearRampToValueAtTime(0, when + duration);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.addEventListener("ended", () => {
+        oscillator.disconnect();
+        gain.disconnect();
+      }, { once: true });
+      oscillator.start(when);
+      oscillator.stop(when + duration);
+    }
+  } catch (_) {
+    // Audio unavailable: keep the story playable.
+  }
+}
+
+// Short, spaced pulses follow visible characters; no looping sound timer.
+function playTextBeep(character) {
+  if (!character || /\s/.test(character) || !audioContext || audioContext.state !== "running") return;
+  const when = audioContext.currentTime;
+  if (when - lastTextBeepTime < TEXT_BEEP_INTERVAL_SECONDS) return;
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(480, when);
+    gain.gain.setValueAtTime(0, when);
+    gain.gain.linearRampToValueAtTime(0.025, when + 0.003);
+    gain.gain.linearRampToValueAtTime(0, when + 0.025);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.addEventListener("ended", () => {
+      oscillator.disconnect();
+      gain.disconnect();
+    }, { once: true });
+    oscillator.start(when);
+    oscillator.stop(when + 0.03);
+    lastTextBeepTime = when;
+  } catch (_) {
+    // Text remains available when audio is unsupported.
+  }
 }
 
 function playNote(note, duration, volume, when) {
@@ -213,9 +276,12 @@ function typeText(text, callback, onComplete) {
     box.textContent = "";
     box.scrollTop = 0;
     let index = 0;
+    lastTextBeepTime = -Infinity;
     typing = true;
     timer = setInterval(() => {
-      box.textContent += pages[pageIndex][index] || "";
+      const character = pages[pageIndex][index] || "";
+      box.textContent += character;
+      playTextBeep(character);
       index += 1;
       if (index >= pages[pageIndex].length) {
         clearTyping();
@@ -228,7 +294,7 @@ function typeText(text, callback, onComplete) {
           if (complete) complete();
         }
       }
-    }, 18);
+    }, TEXT_CHARACTER_INTERVAL_MS);
   };
   typePage(0);
 }
@@ -656,6 +722,7 @@ function startGame() {
   updatePlace();
   startBgm("game");
   showText("2026年冬。東京デザイナー・アカデミー。\n卒業制作の搬入まで、あと一週間。\n深夜の職員室で、学科長の月岡正明は一人、提出データを確認していた。\n月岡「みんないないな、どこ行ったんだろ…」\nグラフィックデザイン学科には5名スタッフがいるが、全員残業の真っ最中だった。", () => {
+    playPhoneRingtone();
     showText("――智恵蔵の携帯から、電話が鳴った。\n智恵蔵『904教室に……きて……』声は非常に掠れていたが聞き覚えのある智恵蔵の声だった。途切れた声を最後に、通話は切れた。\n月岡「904教室に行ってみなくてはっ！」");
   });
 }

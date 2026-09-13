@@ -16,8 +16,8 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
   padding-block: clamp(4px, calc((100dvh - 320px) / 3.65), 20px);
   grid-template-columns: minmax(0, 1fr) clamp(150px, 20vw, 220px);
   grid-template-rows: minmax(0, 1.81fr) minmax(96px, 1fr);
-  column-gap: clamp(10px, 4.46vw, 38px);
-  row-gap: clamp(8px, 5.1dvh, 20px);
+  /* Keep the spacing between all three windows equal and compact. */
+  gap: 8px;
 }
 .commands {
   grid-column: 2; grid-row: 1 / 3;
@@ -46,7 +46,15 @@ button:disabled { opacity: .45; cursor: default; }
 .imageArea { height: 100%; width: 100%; border: 3px solid white; background: #000; position: relative; overflow: hidden; }
 #sceneImage { display: block; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 .characterSprite { display: none; position: absolute; right: 4%; bottom: 0; height: 96%; max-width: 44%; object-fit: contain; object-position: center bottom; image-rendering: pixelated; pointer-events: none; }
-.characterSprite[data-character="hou"] { height: 86%; }
+/* Match Sekizawa's apparent portrait size; crop at the torso, not the head. */
+.characterSprite[data-character="hou"],
+.characterSprite[data-character="kimura"] {
+  height: 104%;
+  max-width: 48%;
+  top: 0;
+  bottom: auto;
+  object-position: center top;
+}
 #image { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; white-space: pre-line; line-height: 1.7; color: #aaa; pointer-events: none; }
 .message { grid-column: 1; grid-row: 2; min-width: 0; min-height: 0; border: 3px solid white; padding: 8px 12px; font-size: 16px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; overflow-y: auto; overscroll-behavior: contain; touch-action: manipulation; cursor: pointer; }
 .cursor { color: #ffff00; animation: blink 1s infinite; }
@@ -61,7 +69,7 @@ button:disabled { opacity: .45; cursor: default; }
 .credits p:last-child { font-size: 32px; }
 @media (orientation: portrait) {
   .orientationHint { display: block; }
-  #screen { grid-template-columns: minmax(0, 1fr) 150px; column-gap: 8px; padding-inline: 4px; grid-template-rows: minmax(0, 1fr) minmax(160px, 1fr); }
+  #screen { grid-template-columns: minmax(0, 1fr) 150px; padding-inline: 4px; grid-template-rows: minmax(0, 1fr) minmax(160px, 1fr); }
   .message { padding: 8px; }
 }
 @keyframes blink { 50% { opacity: .35; } }
