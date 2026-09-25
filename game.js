@@ -402,6 +402,13 @@ function runCommand(action) {
   action();
 }
 
+function setCommandLabel(button, label) {
+  const marker = document.createElement("span");
+  marker.className = "commandMarker";
+  marker.textContent = "▶";
+  button.replaceChildren(marker, document.createTextNode(` ${label}`));
+}
+
 function renderCommandList() {
   const box = commands();
   if (!box || !Game.started) return;
@@ -422,7 +429,7 @@ function renderCommandList() {
     const button = document.createElement("button");
     button.className = "command";
     button.type = "button";
-    button.textContent = `▶ ${label}`;
+    setCommandLabel(button, label);
     button.addEventListener("click", () => runCommand(action));
     box.appendChild(button);
   });
@@ -448,7 +455,7 @@ function showChoices(title, choices) {
     const button = document.createElement("button");
     button.className = "choice commandChoice";
     button.type = "button";
-    button.textContent = `▶ ${label}`;
+    setCommandLabel(button, label);
     button.disabled = Boolean(disabled);
     button.addEventListener("click", action);
     box.appendChild(button);
@@ -456,7 +463,7 @@ function showChoices(title, choices) {
   const back = document.createElement("button");
   back.className = "choice commandChoice commandBack";
   back.type = "button";
-  back.textContent = "▶ もどる";
+  setCommandLabel(back, "もどる");
   back.addEventListener("click", () => {
     renderCommandList();
     message().textContent = "コマンドを選択してください。";
@@ -822,7 +829,24 @@ document.addEventListener("DOMContentLoaded", () => {
   startTitleBgm();
   title.addEventListener("pointerdown", enableTitleBgm);
   document.addEventListener("keydown", enableTitleBgm, { once: true });
-  startButton.addEventListener("click", () => {
+  // Measure dialogue only after the web font is available. A failed or slow
+  // download falls back to the system font instead of blocking the game.
+  const gameFontReady = document.fonts
+    ? Promise.race([
+        document.fonts.load('16px "BestTen"').catch(() => []),
+        new Promise(resolve => setTimeout(resolve, 3000))
+      ])
+    : Promise.resolve();
+  startButton.addEventListener("click", async () => {
+    if (startButton.disabled || Game.started) return;
+    startButton.disabled = true;
+    const label = startButton.textContent;
+    startButton.textContent = "読み込み中…";
+    // Unlock iPhone audio within the original tap, before awaiting the font.
+    enableAudio().catch(() => {});
+    await gameFontReady;
+    startButton.textContent = label;
+    startButton.disabled = false;
     startGame();
   });
   renderCommandList();

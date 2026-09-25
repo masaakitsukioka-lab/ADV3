@@ -1,5 +1,17 @@
+@font-face {
+  font-family: "BestTen";
+  src: url("Best10-FONT/BestTen-DOT.woff2") format("woff2"),
+       url("Best10-FONT/BestTen-DOT.woff") format("woff"),
+       url("Best10-FONT/BestTen-DOT.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  /* BestTen contains an empty glyph for ▶; use the fallback for this marker. */
+  unicode-range: U+0000-25B5, U+25B7-10FFFF;
+}
+
 * { box-sizing: border-box; }
-:root { color-scheme: dark; font-family: "Courier New", monospace; color: #fff; background: #000; }
+:root { color-scheme: dark; font-family: "BestTen", "Courier New", monospace; color: #fff; background: #000; }
 body {
   margin: 0;
   height: 100vh;
@@ -92,3 +104,5 @@ button:disabled { opacity: .45; cursor: default; }
   pointer-events: none;
 }
 #itemOverlay[hidden] { display: none; }
+
+.commandMarker { font-family: Arial, sans-serif; font-size: 12px; line-height: 0; }
