@@ -13,7 +13,11 @@
   <div id="title">
     <audio id="titleBgm" src="audio/title.mp3" loop preload="auto"></audio>
     <img class="logo" src="images/title.png" alt="東京デザイナー・アカデミー殺人事件">
-    <button class="start" type="button">▶ START</button>
+    <div class="titleActions">
+      <button class="start" type="button">はじめから</button>
+      <button id="continueGame" class="start" type="button" disabled>つづきから</button>
+    </div>
+    <p id="saveStatus" role="status"></p>
     <p class="orientationHint">スマートフォンは横向きでお楽しみください</p>
     <div class="copy">2026 Masaaki Tsukioka All rights reserved</div>
   </div>

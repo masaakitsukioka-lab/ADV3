@@ -106,3 +106,8 @@ button:disabled { opacity: .45; cursor: default; }
 #itemOverlay[hidden] { display: none; }
 
 .commandMarker { font-family: Arial, sans-serif; font-size: 12px; line-height: 0; }
+
+.titleActions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; flex-shrink: 0; }
+.titleActions .start { font-size: 20px; animation: none; }
+#saveStatus { margin: 0; font-size: 12px; }
+.nineCommands > .command { min-height: 30px; padding-block: 3px; }

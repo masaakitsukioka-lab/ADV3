@@ -8,6 +8,7 @@ const Game = {
   place: "職員室",
   inventory: [],
   flags: {
+    accused: false,
     bodyFound: false,
     locationsUnlocked: false,
     cutterSeen: false,
@@ -32,6 +33,64 @@ const Game = {
     kimuraUnlocked: false
   }
 };
+
+const SAVE_KEY = "adv3.investigation.v1";
+const INITIAL_GAME = JSON.parse(JSON.stringify(Game));
+
+function readInvestigationMemo() {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) return null;
+  const save = JSON.parse(raw);
+  if (save.version !== 1 || !save.game ||
+      !Object.hasOwn(Places, save.game.place) ||
+      !Array.isArray(save.game.inventory) ||
+      !save.game.inventory.every(item => ["血の付いたカッター", "赤いUSBメモリ"].includes(item)) ||
+      !save.game.flags || !Object.keys(INITIAL_GAME.flags).every(key => typeof save.game.flags[key] === "boolean")) {
+    throw new Error("Invalid save");
+  }
+  return save.game;
+}
+
+function saveInvestigationMemo() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({version: 1, game: {
+      place: Game.place, inventory: [...Game.inventory], flags: {...Game.flags}
+    }}));
+    showText("ちょうさメモに記録しました。\n次回はタイトルの「つづきから」で、この場所・持ち物・調査状況から再開できます。");
+  } catch (_) {
+    showText("ちょうさメモを保存できませんでした。\nブラウザの保存設定や空き容量を確認してください。");
+  }
+}
+
+function refreshContinueButton() {
+  const button = document.getElementById("continueGame");
+  const status = document.getElementById("saveStatus");
+  try {
+    button.disabled = !readInvestigationMemo();
+    status.textContent = button.disabled ? "ちょうさメモは、まだありません" : "ちょうさメモから再開できます";
+  } catch (_) {
+    button.disabled = true;
+    status.textContent = "ちょうさメモを読み込めませんでした";
+  }
+}
+
+function continueGame() {
+  let saved;
+  try { saved = readInvestigationMemo(); } catch (_) { refreshContinueButton(); return; }
+  if (!saved) { refreshContinueButton(); return; }
+  Game.place = saved.place;
+  Game.inventory = [...saved.inventory];
+  Game.flags = {...saved.flags};
+  Game.started = true;
+  CharacterSprites["関澤遼"].idle = Game.flags.accused ? "images/sekizawa_03.png" : "images/sekizawa_01.png";
+  CharacterSprites["関澤遼"].talking = Game.flags.accused ? "images/sekizawa_04.png" : "images/sekizawa_02.png";
+  stopTitleBgm();
+  document.getElementById("title").style.display = "none";
+  document.getElementById("screen").style.display = "grid";
+  updatePlace();
+  startBgm(Game.place === "904教室" ? "scene904" : "game");
+  showText(`ちょうさメモから再開しました。\n現在地：${Game.place}\nコマンドを選択してください。`);
+}
 
 const Places = {
   "西神田校舎正門": { image: "images/gate.png", people: ["通行人"], items: ["玄関", "階段", "看板", "裏口"] },
@@ -395,7 +454,7 @@ function runCommand(action) {
   hideItemOverlay();
   // A new command interrupts the current dialogue and its mouth animation.
   stopCharacterTalking();
-  if (!Game.flags.bodyFound && action !== moveMenu && action !== inventoryMenu) {
+  if (!Game.flags.bodyFound && action !== moveMenu && action !== inventoryMenu && action !== saveInvestigationMemo) {
     showText("今は904教室へ向かわなくては。\n\n「ばしょいどう」を選ぼう。");
     return;
   }
@@ -422,9 +481,11 @@ function renderCommandList() {
     ["みせる", showMenu],
     ["とる", takeMenu],
     ["さがす", findMenu],
-    ["もちもの", inventoryMenu]
+    ["もちもの", inventoryMenu],
+    ["ちょうさメモ", saveInvestigationMemo]
   ];
   if (Game.flags.kimuraTestimony && Game.place === "801教室") commandList.push(["こくはつする", accuse]);
+  box.classList.toggle("nineCommands", commandList.length === 9);
   commandList.forEach(([label, action]) => {
     const button = document.createElement("button");
     button.className = "command";
@@ -445,6 +506,7 @@ function showChoices(title, choices) {
   next = null;
   commandMenuOpen = true;
   const box = commands();
+  box.classList.remove("nineCommands");
   box.replaceChildren();
   box.scrollTop = 0;
   const heading = document.createElement("div");
@@ -749,6 +811,7 @@ function updateAccuseCommand() {
 function accuse() {
   if (Game.place !== "801教室") return showText("関澤をこくはつしよう");
   if (!Game.flags.usbRead) return showText("こくはつするにはまだ証拠がない。職員室で証拠を調べよう");
+  Game.flags.accused = true;
   CharacterSprites["関澤遼"].idle = "images/sekizawa_03.png";
   CharacterSprites["関澤遼"].talking = "images/sekizawa_04.png";
   startCharacterTalking("関澤遼");
@@ -808,6 +871,7 @@ function showCredits() {
 
 function startGame() {
   if (Game.started) return;
+  Object.assign(Game, JSON.parse(JSON.stringify(INITIAL_GAME)));
   Game.started = true;
   stopTitleBgm();
   document.getElementById("title").style.display = "none";
@@ -837,18 +901,22 @@ document.addEventListener("DOMContentLoaded", () => {
         new Promise(resolve => setTimeout(resolve, 3000))
       ])
     : Promise.resolve();
-  startButton.addEventListener("click", async () => {
-    if (startButton.disabled || Game.started) return;
-    startButton.disabled = true;
-    const label = startButton.textContent;
-    startButton.textContent = "読み込み中…";
-    // Unlock iPhone audio within the original tap, before awaiting the font.
-    enableAudio().catch(() => {});
-    await gameFontReady;
-    startButton.textContent = label;
-    startButton.disabled = false;
-    startGame();
-  });
+  refreshContinueButton();
+  for (const [button, launch] of [[startButton, startGame], [document.getElementById("continueGame"), continueGame]]) {
+    button.addEventListener("click", async () => {
+      if (button.disabled || Game.started) return;
+      const other = button === startButton ? document.getElementById("continueGame") : startButton;
+      button.disabled = true;
+      other.disabled = true;
+      const label = button.textContent;
+      button.textContent = "読み込み中…";
+      enableAudio().catch(() => {});
+      await gameFontReady;
+      button.textContent = label;
+      launch();
+      if (!Game.started) { startButton.disabled = false; refreshContinueButton(); }
+    });
+  }
   renderCommandList();
   message().addEventListener("click", () => {
     if (typing) return;
